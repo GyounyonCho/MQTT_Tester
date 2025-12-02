@@ -2,6 +2,10 @@
 
 MQTT 서버의 데이터를 실시간으로 확인하는 Python 프로그램입니다.
 
+**두 가지 버전 제공:**
+- **GUI 버전** (`mqtt_viewer_gui.py`) - 사용하기 쉬운 그래픽 인터페이스
+- **CLI 버전** (`mqtt_viewer.py`) - 명령줄 인터페이스
+
 ## 기능
 
 - MQTT 브로커에 연결하여 실시간 메시지 수신
@@ -12,6 +16,7 @@ MQTT 서버의 데이터를 실시간으로 확인하는 Python 프로그램입�
 - MQTT 인증 지원
 - **TLS/SSL 암호화 연결 지원**
 - 포트 8883 자동 TLS 활성화
+- GUI 버전: 사용하기 쉬운 그래픽 인터페이스
 
 ## 설치
 
@@ -30,13 +35,48 @@ pip install paho-mqtt
 
 ## 사용법
 
-### 기본 사용
+### GUI 버전 (권장)
+
+GUI 버전은 사용하기 쉽고 직관적입니다.
+
+```bash
+python mqtt_viewer_gui.py
+```
+
+또는 Windows에서:
+```bash
+pythonw mqtt_viewer_gui.py
+```
+
+#### GUI 사용 방법
+
+1. **연결 설정**
+   - Broker: MQTT 브로커 주소 입력
+   - Port: 포트 번호 (기본값: 1883, TLS는 8883)
+   - Username/Password: 인증 정보 입력 (필요한 경우)
+   - TLS/SSL 사용: 보안 연결이 필요한 경우 체크
+   - 인증서 검증 건너뛰기: 개발/테스트 환경에서 체크
+
+2. **토픽 설정**
+   - 구독할 토픽 입력 (여러 개는 쉼표로 구분)
+   - 예: `data/0` 또는 `sensor/temp, sensor/humidity`
+
+3. **연결 및 모니터링**
+   - "연결" 버튼 클릭
+   - 메시지 창에서 실시간으로 데이터 확인
+   - "메시지 지우기" 버튼으로 화면 정리 가능
+
+---
+
+### CLI 버전 (명령줄)
+
+#### 기본 사용
 
 ```bash
 python mqtt_viewer.py -t "sensor/#"
 ```
 
-### 옵션
+#### 옵션
 
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
@@ -48,34 +88,34 @@ python mqtt_viewer.py -t "sensor/#"
 | `--tls` | TLS/SSL 사용 (포트 8883은 자동 활성화) | False |
 | `--insecure` | TLS 인증서 검증 건너뛰기 (개발/테스트용) | False |
 
-### 사용 예제
+#### CLI 사용 예제
 
-#### 1. 로컬 MQTT 브로커에서 특정 토픽 구독
+**로컬 MQTT 브로커에서 특정 토픽 구독:**
 ```bash
 python mqtt_viewer.py -t "sensor/temperature"
 ```
 
-#### 2. 원격 브로커 및 포트 지정 (일반 연결)
+**원격 브로커 및 포트 지정 (일반 연결):**
 ```bash
 python mqtt_viewer.py -b mqtt.example.com -p 1883 -t "sensor/#"
 ```
 
-#### 3. TLS/SSL 보안 연결 (포트 8883은 자동으로 TLS 활성화)
+**TLS/SSL 보안 연결 (포트 8883은 자동으로 TLS 활성화):**
 ```bash
 python mqtt_viewer.py -b mqtt.example.com -p 8883 -u myuser -P mypass -t "sensor/#"
 ```
 
-#### 4. TLS 연결 + 인증서 검증 건너뛰기 (개발/테스트용)
+**TLS 연결 + 인증서 검증 건너뛰기 (개발/테스트용):**
 ```bash
 python mqtt_viewer.py -b mqtt.example.com -p 8883 -u myuser -P mypass --insecure -t "sensor/#"
 ```
 
-#### 5. 여러 토픽 구독
+**여러 토픽 구독:**
 ```bash
 python mqtt_viewer.py -t "sensor/temperature" "sensor/humidity" "device/+/status"
 ```
 
-#### 6. 모든 토픽 구독
+**모든 토픽 구독:**
 ```bash
 python mqtt_viewer.py -t "#"
 ```

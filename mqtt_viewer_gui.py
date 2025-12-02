@@ -94,21 +94,24 @@ class MQTTViewerGUI:
         # CA 인증서
         ttk.Label(connection_frame, text="CA 인증서:").grid(row=5, column=0, sticky=tk.W, padx=(20, 5), pady=(5, 0))
         self.ca_cert_var = tk.StringVar()
-        ttk.Entry(connection_frame, textvariable=self.ca_cert_var, width=35, state=tk.DISABLED).grid(row=5, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        self.ca_cert_entry = ttk.Entry(connection_frame, textvariable=self.ca_cert_var, width=35, state=tk.DISABLED)
+        self.ca_cert_entry.grid(row=5, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
         self.ca_cert_btn = ttk.Button(connection_frame, text="찾기", command=lambda: self.browse_file(self.ca_cert_var), state=tk.DISABLED, width=8)
         self.ca_cert_btn.grid(row=5, column=3, sticky=tk.W, padx=(5, 0), pady=(5, 0))
 
         # 클라이언트 인증서
         ttk.Label(connection_frame, text="클라이언트 인증서:").grid(row=6, column=0, sticky=tk.W, padx=(20, 5), pady=(5, 0))
         self.client_cert_var = tk.StringVar()
-        ttk.Entry(connection_frame, textvariable=self.client_cert_var, width=35, state=tk.DISABLED).grid(row=6, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        self.client_cert_entry = ttk.Entry(connection_frame, textvariable=self.client_cert_var, width=35, state=tk.DISABLED)
+        self.client_cert_entry.grid(row=6, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
         self.client_cert_btn = ttk.Button(connection_frame, text="찾기", command=lambda: self.browse_file(self.client_cert_var), state=tk.DISABLED, width=8)
         self.client_cert_btn.grid(row=6, column=3, sticky=tk.W, padx=(5, 0), pady=(5, 0))
 
         # 프라이빗 키
         ttk.Label(connection_frame, text="프라이빗 키:").grid(row=7, column=0, sticky=tk.W, padx=(20, 5), pady=(5, 0))
         self.private_key_var = tk.StringVar()
-        ttk.Entry(connection_frame, textvariable=self.private_key_var, width=35, state=tk.DISABLED).grid(row=7, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        self.private_key_entry = ttk.Entry(connection_frame, textvariable=self.private_key_var, width=35, state=tk.DISABLED)
+        self.private_key_entry.grid(row=7, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
         self.private_key_btn = ttk.Button(connection_frame, text="찾기", command=lambda: self.browse_file(self.private_key_var), state=tk.DISABLED, width=8)
         self.private_key_btn.grid(row=7, column=3, sticky=tk.W, padx=(5, 0), pady=(5, 0))
 
@@ -165,12 +168,7 @@ class MQTTViewerGUI:
         connection_frame.columnconfigure(1, weight=1)
         topic_frame.columnconfigure(0, weight=1)
 
-        # 인증서 입력 필드 참조 저장
-        self.cert_entries = [
-            self.root.nametowidget(str(connection_frame) + "!entry3"),  # CA cert entry
-            self.root.nametowidget(str(connection_frame) + "!entry4"),  # Client cert entry
-            self.root.nametowidget(str(connection_frame) + "!entry5"),  # Private key entry
-        ]
+        # 인증서 입력 필드는 이미 self.ca_cert_entry, self.client_cert_entry, self.private_key_entry로 저장됨
 
     def browse_file(self, var):
         """파일 선택 대화상자"""
@@ -189,8 +187,9 @@ class MQTTViewerGUI:
         """인증서 기반 인증 체크박스 토글"""
         if self.use_cert_var.get():
             # 인증서 필드 활성화
-            for entry in self.cert_entries:
-                entry.config(state=tk.NORMAL)
+            self.ca_cert_entry.config(state=tk.NORMAL)
+            self.client_cert_entry.config(state=tk.NORMAL)
+            self.private_key_entry.config(state=tk.NORMAL)
             self.ca_cert_btn.config(state=tk.NORMAL)
             self.client_cert_btn.config(state=tk.NORMAL)
             self.private_key_btn.config(state=tk.NORMAL)
@@ -200,8 +199,9 @@ class MQTTViewerGUI:
             self.insecure_check.config(state=tk.DISABLED)
         else:
             # 인증서 필드 비활성화
-            for entry in self.cert_entries:
-                entry.config(state=tk.DISABLED)
+            self.ca_cert_entry.config(state=tk.DISABLED)
+            self.client_cert_entry.config(state=tk.DISABLED)
+            self.private_key_entry.config(state=tk.DISABLED)
             self.ca_cert_btn.config(state=tk.DISABLED)
             self.client_cert_btn.config(state=tk.DISABLED)
             self.private_key_btn.config(state=tk.DISABLED)

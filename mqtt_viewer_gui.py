@@ -36,11 +36,16 @@ class MQTTViewerGUI:
         # Broker 주소
         ttk.Label(connection_frame, text="Broker:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         self.broker_var = tk.StringVar(value="localhost")
-        ttk.Entry(connection_frame, textvariable=self.broker_var, width=40).grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        broker_entry = ttk.Entry(connection_frame, textvariable=self.broker_var, width=40)
+        broker_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        # 도움말 추가
+        ttk.Label(connection_frame, text="(예: mqtt.example.com 또는 ssl://mqtt.example.com:8883)",
+                 font=("TkDefaultFont", 8), foreground="gray").grid(row=3, column=0, columnspan=4, sticky=tk.W, pady=(2, 0))
 
         # Port
         ttk.Label(connection_frame, text="Port:").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
         self.port_var = tk.StringVar(value="1883")
+        self.port_var.trace_add('write', self.on_port_change)
         ttk.Entry(connection_frame, textvariable=self.port_var, width=10).grid(row=0, column=3, sticky=tk.W)
 
         # Username
@@ -111,6 +116,16 @@ class MQTTViewerGUI:
         message_frame.rowconfigure(0, weight=1)
         connection_frame.columnconfigure(1, weight=1)
         topic_frame.columnconfigure(0, weight=1)
+
+    def on_port_change(self, *args):
+        """포트 번호 변경 시 호출"""
+        try:
+            port = int(self.port_var.get())
+            if port == 8883:
+                self.tls_var.set(True)
+                self.insecure_check.config(state=tk.NORMAL)
+        except ValueError:
+            pass
 
     def on_tls_toggle(self):
         """TLS 체크박스 토글 시 호출"""
@@ -198,6 +213,24 @@ class MQTTViewerGUI:
             messagebox.showerror("오류", "Broker 주소를 입력하세요.")
             return
 
+        # 프로토콜 프리픽스 제거 (ssl://, mqtt://, mqtts:// 등)
+        if '://' in broker:
+            protocol_part, host_part = broker.split('://', 1)
+            broker = host_part
+            # 프로토콜이 ssl 또는 mqtts인 경우 TLS 자동 활성화
+            if protocol_part.lower() in ['ssl', 'mqtts', 'wss']:
+                self.tls_var.set(True)
+                self.append_message(f"ℹ 프로토콜 '{protocol_part}://' 감지, TLS 자동 활성화\n", "topic")
+
+        # Broker 주소에서 포트 분리 (예: example.com:8883)
+        if ':' in broker:
+            broker_parts = broker.rsplit(':', 1)
+            if broker_parts[1].isdigit():
+                broker = broker_parts[0]
+                extracted_port = int(broker_parts[1])
+                self.port_var.set(str(extracted_port))
+                self.append_message(f"ℹ Broker 주소에서 포트 {extracted_port} 추출\n", "topic")
+
         try:
             port = int(self.port_var.get())
         except ValueError:
@@ -247,9 +280,19 @@ class MQTTViewerGUI:
                     self.connected = True
                     self.root.after(0, self.update_ui_connected)
                 except Exception as e:
-                    error_msg = f"연결 실패: {str(e)}"
-                    self.root.after(0, lambda: self.status_var.set(error_msg))
-                    self.root.after(0, lambda: messagebox.showerror("연결 오류", error_msg))
+                    error_str = str(e)
+                    # 더 친절한 에러 메시지 제공
+                    if "getaddrinfo failed" in error_str or "Name or service not known" in error_str:
+                        error_msg = f"호스트를 찾을 수 없습니다.\n\n확인 사항:\n- Broker 주소가 올바른지 확인: {broker}\n- 인터넷 연결 확인\n- 프로토콜 프리픽스(ssl://)는 제거되어야 합니다\n\n원본 오류: {error_str}"
+                    elif "Connection refused" in error_str:
+                        error_msg = f"연결이 거부되었습니다.\n\n확인 사항:\n- 포트 번호가 올바른지 확인: {port}\n- MQTT 브로커가 실행 중인지 확인\n- 방화벽 설정 확인\n\n원본 오류: {error_str}"
+                    elif "timed out" in error_str or "timeout" in error_str.lower():
+                        error_msg = f"연결 시간 초과\n\nBroker: {broker}:{port}\n\n확인 사항:\n- 네트워크 연결 확인\n- Broker 주소와 포트 확인\n\n원본 오류: {error_str}"
+                    else:
+                        error_msg = f"연결 실패\n\nBroker: {broker}:{port}\n\n오류: {error_str}"
+
+                    self.root.after(0, lambda: self.status_var.set(f"연결 실패: {broker}:{port}"))
+                    self.root.after(0, lambda msg=error_msg: messagebox.showerror("연결 오류", msg))
 
             threading.Thread(target=connect_thread, daemon=True).start()
 

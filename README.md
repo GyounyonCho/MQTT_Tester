@@ -91,16 +91,26 @@ pythonw mqtt_viewer_gui.py
 
 #### AWS IoT Core 연결 예제
 
-1. AWS IoT Core 콘솔에서 Thing 생성 및 인증서 다운로드
-2. GUI에서 설정:
+1. **AWS IoT Core 콘솔에서 인증서 다운로드**
+   - Thing 생성 및 인증서 생성
+   - 다음 파일들을 다운로드:
+     - ✅ AmazonRootCA1.pem (CA 인증서)
+     - ✅ xxxx-certificate.pem.crt (클라이언트 인증서)
+     - ✅ xxxx-private.pem.key (프라이빗 키)
+     - ❌ xxxx-public.pem.key (사용 안 함!)
+
+2. **GUI에서 설정:**
    - Broker: `xxxxx-ats.iot.region.amazonaws.com` (AWS IoT 엔드포인트)
    - Port: `8883`
-   - 인증서 기반 인증 체크
+   - ✓ 인증서 기반 인증 체크
    - CA 인증서: `AmazonRootCA1.pem`
-   - 클라이언트 인증서: `certificate.pem.crt`
-   - 프라이빗 키: `private.pem.key`
+   - 클라이언트 인증서: `xxxx-certificate.pem.crt` ⚠️ NOT public.pem.key!
+   - 프라이빗 키: `xxxx-private.pem.key`
    - 토픽: `test/topic` (정책에서 허용된 토픽)
-3. "연결" 클릭
+
+3. **"연결" 클릭**
+
+**중요:** public.pem.key 파일은 클라이언트 인증서가 아닙니다! certificate.pem.crt 파일을 사용하세요.
 
 ---
 

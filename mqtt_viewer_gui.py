@@ -116,8 +116,10 @@ class MQTTViewerGUI:
         self.private_key_btn.grid(row=7, column=3, sticky=tk.W, padx=(5, 0), pady=(5, 0))
 
         # 도움말
-        ttk.Label(connection_frame, text="팁: AWS IoT의 경우 Broker에 엔드포인트 주소, Port는 8883을 사용하세요",
-                 font=("TkDefaultFont", 8), foreground="gray").grid(row=8, column=0, columnspan=4, sticky=tk.W, pady=(5, 0))
+        help_text = "팁: AWS IoT - Broker: xxxxx-ats.iot.region.amazonaws.com, Port: 8883\n"
+        help_text += "     CA: AmazonRootCA1.pem, 클라이언트: certificate.pem.crt (NOT public.pem.key!), 키: private.pem.key"
+        ttk.Label(connection_frame, text=help_text,
+                 font=("TkDefaultFont", 7), foreground="gray", justify=tk.LEFT).grid(row=8, column=0, columnspan=4, sticky=tk.W, pady=(5, 0))
 
         # 토픽 설정 프레임
         topic_frame = ttk.LabelFrame(main_frame, text="토픽 설정", padding="10")
@@ -532,14 +534,39 @@ class MQTTViewerGUI:
             if use_tls:
                 if use_cert:
                     # 인증서 기반 TLS
-                    self.client.tls_set(
-                        ca_certs=ca_cert,
-                        certfile=client_cert,
-                        keyfile=private_key,
-                        cert_reqs=ssl.CERT_REQUIRED,
-                        tls_version=ssl.PROTOCOL_TLSv1_2
-                    )
-                    self.append_message("ℹ 인증서 기반 TLS 연결 사용\n", "topic")
+                    try:
+                        self.client.tls_set(
+                            ca_certs=ca_cert,
+                            certfile=client_cert,
+                            keyfile=private_key,
+                            cert_reqs=ssl.CERT_REQUIRED,
+                            tls_version=ssl.PROTOCOL_TLSv1_2
+                        )
+                        self.append_message("ℹ 인증서 기반 TLS 연결 사용\n", "topic")
+                        self.append_message(f"  - CA 인증서: {os.path.basename(ca_cert)}\n", "payload")
+                        self.append_message(f"  - 클라이언트 인증서: {os.path.basename(client_cert)}\n", "payload")
+                        self.append_message(f"  - 프라이빗 키: {os.path.basename(private_key)}\n", "payload")
+                    except Exception as cert_error:
+                        error_msg = f"인증서 로드 실패\n\n"
+                        error_msg += f"에러: {str(cert_error)}\n\n"
+                        error_msg += "확인 사항:\n\n"
+                        error_msg += "1. AWS IoT 인증서 파일 확인:\n"
+                        error_msg += "   - CA 인증서: AmazonRootCA1.pem\n"
+                        error_msg += "   - 클라이언트 인증서: xxxx-certificate.pem.crt\n"
+                        error_msg += "     (NOT public.pem.key!)\n"
+                        error_msg += "   - 프라이빗 키: xxxx-private.pem.key\n\n"
+                        error_msg += "2. 파일이 PEM 형식인지 확인:\n"
+                        error_msg += "   - 파일을 텍스트 에디터로 열어보세요\n"
+                        error_msg += "   - -----BEGIN CERTIFICATE----- 또는\n"
+                        error_msg += "     -----BEGIN RSA PRIVATE KEY----- 로 시작해야 함\n\n"
+                        error_msg += "3. 올바른 파일을 선택했는지 확인:\n"
+                        error_msg += f"   - CA: {ca_cert}\n"
+                        error_msg += f"   - 인증서: {client_cert}\n"
+                        error_msg += f"   - 키: {private_key}\n\n"
+                        error_msg += "❌ public.pem.key는 사용하지 않습니다!\n"
+                        error_msg += "✅ certificate.pem.crt를 사용하세요"
+                        messagebox.showerror("인증서 오류", error_msg)
+                        return
                 else:
                     # 일반 TLS
                     if insecure:

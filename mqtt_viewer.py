@@ -56,8 +56,11 @@ class MQTTViewer:
                 # 기본 TLS 설정 (인증서 검증)
                 self.client.tls_set()
 
-    def on_connect(self, client, userdata, flags, rc):
-        """연결 성공 시 호출되는 콜백"""
+    def on_connect(self, client, userdata, flags, reason_code, properties):
+        """연결 성공 시 호출되는 콜백 (Callback API v2)"""
+        # reason_code는 v2에서 ReasonCode 객체이거나 정수일 수 있음
+        rc = reason_code if isinstance(reason_code, int) else reason_code.value
+
         if rc == 0:
             print(f"✓ MQTT 브로커에 연결되었습니다: {self.broker}:{self.port}")
             print(f"✓ 구독 토픽: {', '.join(self.topics)}")
@@ -99,8 +102,11 @@ class MQTTViewer:
             print(f"Payload: {payload_display}")
         print("-" * 80)
 
-    def on_disconnect(self, client, userdata, rc):
-        """연결 해제 시 호출되는 콜백"""
+    def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties):
+        """연결 해제 시 호출되는 콜백 (Callback API v2)"""
+        # reason_code는 v2에서 ReasonCode 객체이거나 정수일 수 있음
+        rc = reason_code if isinstance(reason_code, int) else reason_code.value
+
         if rc != 0:
             print(f"\n✗ 예기치 않은 연결 해제. 에러 코드: {rc}")
 

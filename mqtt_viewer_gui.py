@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 import threading
 import ssl
+import os
 
 
 class MQTTViewerGUI:
@@ -21,8 +22,10 @@ class MQTTViewerGUI:
 
         self.client = None
         self.connected = False
+        self.config_file = os.path.join(os.path.expanduser("~"), ".mqtt_viewer_config.json")
 
         self.create_widgets()
+        self.load_settings()
 
     def create_widgets(self):
         # 메인 프레임
@@ -135,8 +138,11 @@ class MQTTViewerGUI:
             self.insecure_check.config(state=tk.DISABLED)
             self.insecure_var.set(False)
 
-    def on_connect(self, client, userdata, flags, rc):
-        """MQTT 연결 성공 시 호출"""
+    def on_connect(self, client, userdata, flags, reason_code, properties):
+        """MQTT 연결 성공 시 호출 (Callback API v2)"""
+        # reason_code는 v2에서 ReasonCode 객체이거나 정수일 수 있음
+        rc = reason_code if isinstance(reason_code, int) else reason_code.value
+
         if rc == 0:
             self.root.after(0, lambda: self.status_var.set("✓ 연결됨"))
             topics = [t.strip() for t in self.topics_var.get().split(',') if t.strip()]
@@ -189,8 +195,11 @@ class MQTTViewerGUI:
         self.message_text.insert(tk.END, "-" * 80 + "\n", "separator")
         self.message_text.see(tk.END)  # 자동 스크롤
 
-    def on_disconnect(self, client, userdata, rc):
-        """MQTT 연결 해제 시 호출"""
+    def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties):
+        """MQTT 연결 해제 시 호출 (Callback API v2)"""
+        # reason_code는 v2에서 ReasonCode 객체이거나 정수일 수 있음
+        rc = reason_code if isinstance(reason_code, int) else reason_code.value
+
         if rc != 0:
             msg = f"✗ 예기치 않은 연결 해제. 에러 코드: {rc}"
             self.root.after(0, lambda: self.status_var.set(msg))
@@ -328,8 +337,49 @@ class MQTTViewerGUI:
         """메시지 영역 지우기"""
         self.message_text.delete(1.0, tk.END)
 
+    def save_settings(self):
+        """현재 설정을 파일로 저장"""
+        settings = {
+            "broker": self.broker_var.get(),
+            "port": self.port_var.get(),
+            "username": self.username_var.get(),
+            "topics": self.topics_var.get(),
+            "use_tls": self.tls_var.get(),
+            "insecure": self.insecure_var.get()
+        }
+
+        try:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"설정 저장 실패: {e}")
+
+    def load_settings(self):
+        """저장된 설정을 불러오기"""
+        if not os.path.exists(self.config_file):
+            return
+
+        try:
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+
+            self.broker_var.set(settings.get("broker", "localhost"))
+            self.port_var.set(settings.get("port", "1883"))
+            self.username_var.set(settings.get("username", ""))
+            self.topics_var.set(settings.get("topics", "data/0"))
+            self.tls_var.set(settings.get("use_tls", False))
+            self.insecure_var.set(settings.get("insecure", False))
+
+            # TLS 상태에 따라 insecure 체크박스 활성화
+            if self.tls_var.get():
+                self.insecure_check.config(state=tk.NORMAL)
+
+        except Exception as e:
+            print(f"설정 불러오기 실패: {e}")
+
     def on_closing(self):
         """윈도우 닫기 시 호출"""
+        self.save_settings()  # 설정 저장
         if self.connected:
             self.disconnect()
         self.root.destroy()

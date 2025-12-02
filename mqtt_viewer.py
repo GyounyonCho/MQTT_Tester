@@ -9,10 +9,11 @@ import json
 import argparse
 from datetime import datetime
 import sys
+import ssl
 
 
 class MQTTViewer:
-    def __init__(self, broker, port, topics, username=None, password=None):
+    def __init__(self, broker, port, topics, username=None, password=None, use_tls=False, insecure=False):
         """
         MQTT Viewer 초기화
 
@@ -22,13 +23,19 @@ class MQTTViewer:
             topics: 구독할 토픽 리스트
             username: 인증 사용자명 (선택)
             password: 인증 비밀번호 (선택)
+            use_tls: TLS/SSL 사용 여부 (선택)
+            insecure: TLS 인증서 검증 건너뛰기 (선택)
         """
         self.broker = broker
         self.port = port
         self.topics = topics
         self.username = username
         self.password = password
-        self.client = mqtt.Client()
+        self.use_tls = use_tls
+        self.insecure = insecure
+
+        # Callback API Version 2 사용 (최신 버전)
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
         # 콜백 함수 설정
         self.client.on_connect = self.on_connect
@@ -38,6 +45,16 @@ class MQTTViewer:
         # 인증 설정
         if self.username and self.password:
             self.client.username_pw_set(self.username, self.password)
+
+        # TLS 설정
+        if self.use_tls:
+            if self.insecure:
+                # 인증서 검증 건너뛰기 (개발/테스트 환경용)
+                self.client.tls_set(cert_reqs=ssl.CERT_NONE)
+                self.client.tls_insecure_set(True)
+            else:
+                # 기본 TLS 설정 (인증서 검증)
+                self.client.tls_set()
 
     def on_connect(self, client, userdata, flags, rc):
         """연결 성공 시 호출되는 콜백"""
@@ -114,8 +131,11 @@ def main():
   # 특정 브로커 및 포트 지정
   python mqtt_viewer.py -b mqtt.example.com -p 1883 -t "sensor/temperature" "sensor/humidity"
 
-  # 인증이 필요한 경우
-  python mqtt_viewer.py -b mqtt.example.com -u myuser -P mypass -t "sensor/#"
+  # TLS/SSL 연결 (포트 8883은 자동으로 TLS 활성화)
+  python mqtt_viewer.py -b mqtt.example.com -p 8883 -u myuser -P mypass -t "sensor/#"
+
+  # TLS 연결 + 인증서 검증 건너뛰기 (개발/테스트용)
+  python mqtt_viewer.py -b mqtt.example.com -p 8883 -u myuser -P mypass --insecure -t "sensor/#"
 
   # 여러 토픽 구독
   python mqtt_viewer.py -t "sensor/#" "device/+/status" "logs/error"
@@ -142,7 +162,23 @@ def main():
     parser.add_argument('-P', '--password',
                         help='MQTT 인증 비밀번호')
 
+    parser.add_argument('--tls',
+                        action='store_true',
+                        help='TLS/SSL 사용 (포트 8883은 자동으로 TLS 활성화)')
+
+    parser.add_argument('--insecure',
+                        action='store_true',
+                        help='TLS 인증서 검증 건너뛰기 (개발/테스트용)')
+
     args = parser.parse_args()
+
+    # 포트 8883은 자동으로 TLS 활성화
+    use_tls = args.tls or args.port == 8883
+
+    if use_tls:
+        print(f"TLS/SSL 모드: {'활성화' if use_tls else '비활성화'}")
+        if args.insecure:
+            print("⚠ 경고: 인증서 검증을 건너뜁니다 (개발/테스트용)")
 
     # MQTT Viewer 시작
     viewer = MQTTViewer(
@@ -150,7 +186,9 @@ def main():
         port=args.port,
         topics=args.topics,
         username=args.username,
-        password=args.password
+        password=args.password,
+        use_tls=use_tls,
+        insecure=args.insecure
     )
 
     viewer.start()

@@ -10,6 +10,8 @@ MQTT 서버의 데이터를 실시간으로 확인하는 Python 프로그램입�
 - JSON 자동 파싱 및 포맷팅
 - 타임스탬프와 함께 메시지 출력
 - MQTT 인증 지원
+- **TLS/SSL 암호화 연결 지원**
+- 포트 8883 자동 TLS 활성화
 
 ## 설치
 
@@ -43,6 +45,8 @@ python mqtt_viewer.py -t "sensor/#"
 | `-t`, `--topics` | 구독할 토픽(들) - **필수** | - |
 | `-u`, `--username` | MQTT 인증 사용자명 | - |
 | `-P`, `--password` | MQTT 인증 비밀번호 | - |
+| `--tls` | TLS/SSL 사용 (포트 8883은 자동 활성화) | False |
+| `--insecure` | TLS 인증서 검증 건너뛰기 (개발/테스트용) | False |
 
 ### 사용 예제
 
@@ -51,22 +55,27 @@ python mqtt_viewer.py -t "sensor/#"
 python mqtt_viewer.py -t "sensor/temperature"
 ```
 
-#### 2. 원격 브로커 및 포트 지정
+#### 2. 원격 브로커 및 포트 지정 (일반 연결)
 ```bash
 python mqtt_viewer.py -b mqtt.example.com -p 1883 -t "sensor/#"
 ```
 
-#### 3. 인증이 필요한 브로커
+#### 3. TLS/SSL 보안 연결 (포트 8883은 자동으로 TLS 활성화)
 ```bash
-python mqtt_viewer.py -b mqtt.example.com -u myuser -P mypass -t "sensor/#"
+python mqtt_viewer.py -b mqtt.example.com -p 8883 -u myuser -P mypass -t "sensor/#"
 ```
 
-#### 4. 여러 토픽 구독
+#### 4. TLS 연결 + 인증서 검증 건너뛰기 (개발/테스트용)
+```bash
+python mqtt_viewer.py -b mqtt.example.com -p 8883 -u myuser -P mypass --insecure -t "sensor/#"
+```
+
+#### 5. 여러 토픽 구독
 ```bash
 python mqtt_viewer.py -t "sensor/temperature" "sensor/humidity" "device/+/status"
 ```
 
-#### 5. 모든 토픽 구독
+#### 6. 모든 토픽 구독
 ```bash
 python mqtt_viewer.py -t "#"
 ```
